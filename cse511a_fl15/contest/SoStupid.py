@@ -75,6 +75,7 @@ class ReflexCaptureAgent(CaptureAgent):
     '''
     Your initialization code goes here, if you need any.
     '''
+    ##One agent goes up and one agent goes down
     pos = []
     x = gameState.getWalls().width / 2
     y = gameState.getWalls().height / 2
@@ -94,7 +95,6 @@ class ReflexCaptureAgent(CaptureAgent):
         minDist = dist
         minPos = location
     self.Bstart_point = minPos
-
     ##print "self.Bstart_point:",self.Bstart_point
 
     x,y = self.start_point
@@ -231,8 +231,6 @@ class ReflexCaptureAgent(CaptureAgent):
     ##
     myPos = successor.getAgentState(self.index).getPosition()
     minDistance = 0
-
-
     if len(foodList) > 0:
       dis_dict = {}
       for food in foodList:
@@ -291,11 +289,10 @@ class ReflexCaptureAgent(CaptureAgent):
     else:
         features['enemy_dis'] = 0
 
-
+    ## Do not stop and hesitate!
     if action == Directions.STOP: features['stop'] = 1
     rev = Directions.REVERSE[gameState.getAgentState(self.index).configuration.direction]
     if action == rev: features['reverse'] = 1
-
 
     return features
 
