@@ -13,6 +13,8 @@ import random, time, util
 from game import Directions
 import game
 from util import nearestPoint
+from inference import InferenceModule
+import sys
 
 #################
 # Team creation #
@@ -75,6 +77,12 @@ class ReflexCaptureAgent(CaptureAgent):
     '''
     Your initialization code goes here, if you need any.
     '''
+    #get enimies' number
+
+    self.enimies=self.getOpponents(gameState)
+    self.inference=InferenceModule();
+    self.inference.initialize(gameState);
+    #self.inferenceModules=[inferenceType(a) for a in
     ##One agent goes up and one agent goes down
     pos = []
     x = gameState.getWalls().width / 2
@@ -114,13 +122,12 @@ class ReflexCaptureAgent(CaptureAgent):
     self.Astart_point = minPos
     ##print "self.Astart_point:",self.Astart_point
 
-
-
-
   def chooseAction(self, gameState):
     """
     Picks among the actions with the highest Q(s,a).
     """
+    self.inference.elapseTime(gameState)
+    self.inference.observe(gameState.getAgentDistances(),gameState,self.index)
     actions = gameState.getLegalActions(self.index)
     ##actions.remove(Directions.STOP)
     # You can profile your evaluation time by uncommenting these lines
@@ -159,11 +166,12 @@ class ReflexCaptureAgent(CaptureAgent):
     """
     L = gameState.getAgentState(self.index)
     enemyPos = []
-    for enemyI in self.getOpponents(gameState):
-      pos = gameState.getAgentPosition(enemyI)
-      #Will need inference if None
-      if pos != None:
-        enemyPos.append((enemyI, pos))
+
+    belief=self.inference.getBeliefDistribution()
+    self.debugClear()
+    for pos in belief:
+        print "test color"+str(belief[pos])
+        self.debugDraw(pos,[0,0,belief[pos]])
 
     if len(enemyPos) > 0:
       for enemyI, pos in enemyPos:
@@ -328,6 +336,4 @@ class ReflexCaptureAgent(CaptureAgent):
 
   def getDefenseWeights(self, gameState, action):
     return {'numInvaders': -1000, 'onDefense': 100, 'invaderDistance': -10, 'stop': -1000, 'reverse': -2}
-
-
 
