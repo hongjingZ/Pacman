@@ -82,6 +82,7 @@ class ReflexCaptureAgent(CaptureAgent):
     self.enimies=self.getOpponents(gameState)
     self.inference=InferenceModule();
     self.inference.initialize(gameState);
+    self.inference.enemies=self.enimies
     #self.inferenceModules=[inferenceType(a) for a in
     ##One agent goes up and one agent goes down
     pos = []
@@ -170,8 +171,7 @@ class ReflexCaptureAgent(CaptureAgent):
     belief=self.inference.getBeliefDistribution()
     self.debugClear()
     for pos in belief:
-        print "test color:"+pos+" "+str(belief[pos])
-        self.debugDraw(pos,[0,0,belief[pos]])
+        self.debugDraw(pos,[0,belief[pos],0])
 
     if len(enemyPos) > 0:
       for enemyI, pos in enemyPos:
