@@ -56,22 +56,18 @@ class InferenceModule:
     """
     Update beliefs for a time step elapsing.
     """
-    enemyID=((agentID+3)%4)/2 #(agentID+4-1)%4/2
+    enemyID=((agentID+3)%4)/2 #(agentID+4-1)%4/2 calculating which agent just moved
     #print "agentID="+str(agentID)+"enemyID="+str(enemyID)
     newParticles = []
     for oldParticle in self.Particles:
         newParticle = list(oldParticle) # A list of ghost positions
-        pos=newParticle[enemyID]
-        newPosList=[]
+        pos=newParticle[enemyID] # certain enemy's position
         newPosDistribution=util.Counter()
-        counter=0 # use this to calculate the probability of enemy's move
-        for move in self.moveList:
-            newPos=(pos[0]+move[0],pos[1]+move[1])
-            if not gameState.hasWall(newPos[0],newPos[1]):
-                newPosList.append(newPos)
-                counter+=1 # assume all the action for this enemy is equally possible
-        for newPos in newPosList:
-            newPosDistribution[newPos]=1.0/counter# in this form, we can use sample method
+        for move in self.moveList: # get every move
+            newPos=(pos[0]+move[0],pos[1]+move[1]) # get the new position
+            if newPos in self.legalPositions: # if the posistion is illeagle, ingore it.
+                newPosDistribution[newPos]=1
+        newPosDistribution.normalize()
         newParticle[enemyID]=(util.sample(newPosDistribution))
         newParticles.append(tuple(newParticle))
 
@@ -81,13 +77,14 @@ class InferenceModule:
     """
     Return the agent's current belief state, a distribution over
     ghost locations conditioned on all evidence and time passage.
+    belief has two couter, store the enemies' position repectively
     """
     belief=[util.Counter(),util.Counter()]
     for p in self.Particles:
             belief[0][p[0]]+=1
             belief[1][p[1]]+=1
 
-    belief[0].divideAll(self.numParticles*1.0)
+    belief[0].divideAll(self.numParticles*1.0) #this 1.0 may be unnecessarily
     belief[1].divideAll(self.numParticles*1.0)
 
     return belief
