@@ -8,10 +8,10 @@ import capture
 
 class InferenceModule:
   def __init__(self):
-    numParticles=9000
+    numParticles=10000
     self.setNumParticles(numParticles)
     self.Captured=False
-    self.moveList=[(0,1),(0,-1),(1,0),(-1,0),(0,0)]
+    self.moveList=[(0,1),(0,-1),(1,0),(-1,0)]
     self.enemies=[]
 
   def setNumParticles(self, numParticles):
@@ -52,28 +52,27 @@ class InferenceModule:
         newParticals=util.nSample(weights,self.Particles,self.numParticles)
         self.Particles=newParticals
 
-  def elapseTime(self, gameState):
+  def elapseTime(self, gameState,agentID):
     """
     Update beliefs for a time step elapsing.
     """
-
+    enemyID=((agentID+3)%4)/2 #(agentID+4-1)%4/2
+    #print "agentID="+str(agentID)+"enemyID="+str(enemyID)
     newParticles = []
     for oldParticle in self.Particles:
         newParticle = list(oldParticle) # A list of ghost positions
-        for i in range(2):#for each ghost. In fact, only one enemy moves between two elasptime. Try to figure out whih enemy move will improve the efficiency
-            #Hint, the index of the enmey which just moved is less 1 than this agen.
-            counter=0
-            pos=newParticle[i]
-            newPosList=[]
-            newPosDistribution=util.Counter()
-            for move in self.moveList:
-                newPos=(pos[0]+move[0],pos[1]+move[1])
-                if not gameState.hasWall(newPos[0],newPos[1]):
-                    newPosList.append(newPos)
-                    counter+=1 # assume all the action for this enemy is equally possible
-            for newPos in newPosList:
-                newPosDistribution[newPos]=1.0/counter# in this form, we can use sample method
-            newParticle[i]=(util.sample(newPosDistribution))
+        pos=newParticle[enemyID]
+        newPosList=[]
+        newPosDistribution=util.Counter()
+        counter=0 # use this to calculate the probability of enemy's move
+        for move in self.moveList:
+            newPos=(pos[0]+move[0],pos[1]+move[1])
+            if not gameState.hasWall(newPos[0],newPos[1]):
+                newPosList.append(newPos)
+                counter+=1 # assume all the action for this enemy is equally possible
+        for newPos in newPosList:
+            newPosDistribution[newPos]=1.0/counter# in this form, we can use sample method
+        newParticle[enemyID]=(util.sample(newPosDistribution))
         newParticles.append(tuple(newParticle))
 
     self.particles = newParticles
@@ -83,12 +82,13 @@ class InferenceModule:
     Return the agent's current belief state, a distribution over
     ghost locations conditioned on all evidence and time passage.
     """
-    belief=util.Counter()
+    belief=[util.Counter(),util.Counter()]
     for p in self.Particles:
-        for pos in p:
-            belief[pos]+=1;
+            belief[0][p[0]]+=1
+            belief[1][p[1]]+=1
 
-    belief.divideAll(self.numParticles)
+    belief[0].divideAll(self.numParticles*1.0)
+    belief[1].divideAll(self.numParticles*1.0)
 
     return belief
 
