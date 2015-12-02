@@ -8,10 +8,11 @@ import capture
 
 class InferenceModule:
   def __init__(self):
-    numParticles=300
+    numParticles=9000
     self.setNumParticles(numParticles)
     self.Captured=False
     self.moveList=[(0,1),(0,-1),(1,0),(-1,0),(0,0)]
+    self.enemies=[]
 
   def setNumParticles(self, numParticles):
     self.numParticles = numParticles
@@ -23,6 +24,7 @@ class InferenceModule:
 
   def initializeUniformly(self, gameState):
     "Initializes a list of particles. Use self.numParticles for the number of particles"
+    print "initialzed particles"
     self.Particles=[]
     for i in range(self.numParticles):
         pos1=random.choice(self.legalPositions)
@@ -41,7 +43,7 @@ class InferenceModule:
     for index in range(self.numParticles):
         for i in range(2):
             trueDistance=util.manhattanDistance(self.Particles[index][i],AgentPosition)
-            weights[index]*=gameState.getDistanceProb(trueDistance,noisyDistance[i])
+            weights[index]*=gameState.getDistanceProb(trueDistance,noisyDistance[self.enemies[i]])
 
     if sum(weights)==0:
         self.initializeUniformly(gameState)
