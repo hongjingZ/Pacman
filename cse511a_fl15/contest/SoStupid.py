@@ -127,7 +127,7 @@ class ReflexCaptureAgent(CaptureAgent):
     """
     Picks among the actions with the highest Q(s,a).
     """
-    self.inference.elapseTime(gameState)
+    self.inference.elapseTime(gameState,self.index)
     self.inference.observe(gameState.getAgentDistances(),gameState,self.index)
     actions = gameState.getLegalActions(self.index)
     ##actions.remove(Directions.STOP)
@@ -170,8 +170,9 @@ class ReflexCaptureAgent(CaptureAgent):
 
     belief=self.inference.getBeliefDistribution()
     self.debugClear()
-    for pos in belief:
-        self.debugDraw(pos,[0,belief[pos],0])
+    for index in range(2):
+        for pos in belief[index]:
+            self.debugDraw(pos,[0,belief[index][pos],0])
 
     if len(enemyPos) > 0:
       for enemyI, pos in enemyPos:
