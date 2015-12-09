@@ -129,6 +129,7 @@ class ReflexCaptureAgent(CaptureAgent):
     """
     self.inference.elapseTime(gameState,self.index)
     self.inference.observe(gameState.getAgentDistances(),gameState,self.index)
+    print "distance="+str(gameState.getAgentDistances())
     actions = gameState.getLegalActions(self.index)
     ##actions.remove(Directions.STOP)
     # You can profile your evaluation time by uncommenting these lines
