@@ -17,7 +17,6 @@ from util import nearestPoint
 import sys
 
 
-
 # inference.py
 
 import util
@@ -28,7 +27,7 @@ import capture
 
 class InferenceModule:
   def __init__(self):
-    numParticles=10000
+    numParticles=9000
     self.setNumParticles(numParticles)
     self.Captured=False
     self.moveList=[(0,1),(0,-1),(1,0),(-1,0)]
@@ -37,10 +36,24 @@ class InferenceModule:
   def setNumParticles(self, numParticles):
     self.numParticles = numParticles
 
-  def initialize(self, gameState):
+  def initialize(self, gameState,startPos):
     "Initializes beliefs to a uniform distribution over all positions."
+    self.startPos=startPos;
     self.legalPositions = [p for p in gameState.getWalls().asList(False) if p[1] > 1]
-    self.initializeUniformly(gameState)
+    self.initializeBorn(gameState,3)
+
+  def initializeBorn(self,gameState,index):
+    if index>=2:
+      self.Particles=[]
+      for i in range(self.numParticles):
+          pos1=self.startPos[0]
+          pos2=self.startPos[1]
+          self.Particles.append((pos1,pos2))
+    else:
+      if index==0:
+        i=0;
+      else:
+        i=1;
 
   def initializeUniformly(self, gameState):
     "Initializes a list of particles. Use self.numParticles for the number of particles"
@@ -109,8 +122,7 @@ class InferenceModule:
 
     return belief
 
-
-
+TeamInference=InferenceModule()
 
 #################
 # Team creation #
@@ -162,6 +174,9 @@ class ReflexCaptureAgent(CaptureAgent):
     on initialization time, please take a look at
     CaptureAgent.registerInitialState in captureAgents.py.
     '''
+
+    global TeamInference
+
     CaptureAgent.registerInitialState(self, gameState)
     self.team = {}
     A = self.getTeam(gameState)
@@ -176,14 +191,18 @@ class ReflexCaptureAgent(CaptureAgent):
     '''
     Your initialization code goes here, if you need any.
     '''
-    #get enimies' number
 
-    ##self.enimies=self.getOpponents(gameState)
-    ##self.inference=InferenceModule();
-    ##self.inference.initialize(gameState);
-    ##self.inference.enemies=self.enimies
-    #self.inferenceModules=[inferenceType(a) for a in
-    ##One agent goes up and one agent goes down
+    self.enemies=self.getOpponents(gameState)
+
+    self.inference=TeamInference;
+    if self.index==A[0]: #only the first agent need to initialize the agent
+      startPos=[]
+      for i in range(2):
+        startPos.append(gameState.getAgentState(self.enemies[i]).start.pos)
+      self.inference.initialize(gameState,startPos);
+      self.inference.enemies=self.enemies
+
+    #One agent goes up and one agent goes down
     pos = []
     x = gameState.getWalls().width / 2
     y = gameState.getWalls().height / 2
@@ -227,8 +246,12 @@ class ReflexCaptureAgent(CaptureAgent):
     Picks among the actions with the highest Q(s,a).
     """
     ##start = time.time()
-    ##self.inference.elapseTime(gameState,self.index)
-    ##self.inference.observe(gameState.getAgentDistances(),gameState,self.index)
+
+    #inference part
+    self.inference.elapseTime(gameState,self.index)
+    self.inference.observe(gameState.getAgentDistances(),gameState,self.index)
+    #end inference part
+
     actions = gameState.getLegalActions(self.index)
     ##actions.remove(Directions.STOP)
     # You can profile your evaluation time by uncommenting these lines
@@ -237,7 +260,6 @@ class ReflexCaptureAgent(CaptureAgent):
     bestActions = [a for a, v in zip(actions, values) if v == maxValue]
     ##print 'eval time for agent %d: %.4f' % (self.index, time.time() - start)
     return random.choice(bestActions)
-
 
   def getSuccessor(self, gameState, action):
     """
@@ -271,11 +293,18 @@ class ReflexCaptureAgent(CaptureAgent):
       if pos != None:
         enemyPos.append((enemyI, pos))
 
-    ##belief=self.inference.getBeliefDistribution()
-    ##self.debugClear()
-    ##for index in range(2):
-    ##    for pos in belief[index]:
-     ##       self.debugDraw(pos,[0,belief[index][pos],0])
+    #display inferernce
+    belief=self.inference.getBeliefDistribution()
+    print belief
+    self.debugClear()
+    for index in range(2):
+        print "index="+str(index)
+        for pos in belief[index]:
+          print str(pos)+"="+str(belief[index][pos])
+          self.debugDraw(pos,[0,belief[index][pos],0])
+    #end display inference
+    while True:
+      None
 
     if len(enemyPos) > 0:
       for enemyI, pos in enemyPos:
