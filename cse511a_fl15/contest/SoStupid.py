@@ -301,10 +301,10 @@ class ReflexCaptureAgent(CaptureAgent):
         print "index="+str(index)
         for pos in belief[index]:
           print str(pos)+"="+str(belief[index][pos])
-          self.debugDraw(pos,[0,belief[index][pos],0])
+          self.debugDraw(pos,[0,belief[index][pos],0],False)
     #end display inference
-    while True:
-      None
+    self.debugDraw([(30,11)],[1,1,0])
+    self.debugDraw([(30,10)],[1,1,0])
 
     if len(enemyPos) > 0:
       for enemyI, pos in enemyPos:
