@@ -19,15 +19,13 @@ class FoodPlan:
   def __init__(self):
     self.AgentFoodList=[util.Counter(),util.Counter()]
     self.FoodList=[]
-    self.flag=True
 
   def generateFoodList(self, gameState, agentID):
     bias=0
     if gameState.isOnRedTeam(agentID):
-      bias=1
-      Foodmap=gameState.getRedFood();
-    else:
       Foodmap=gameState.getBlueFood();
+    else:
+      Foodmap=gameState.getRedFood();
 
     height=Foodmap.height
     width=Foodmap.width
@@ -35,7 +33,41 @@ class FoodPlan:
     for y in range(height):
       for x in range(width):
         if Foodmap[x][y]:
-          self.FoodList.append((x+width*bias,y))
+          self.FoodList.append((x,y))
+
+    self.FoodFeature(gameState)
+
+  def FoodFeature(self,gameState):
+    Move=[(0,1),(0,-1),(1,0),(-1,0)]
+    self.dangerousFood=[]
+
+    for food in self.FoodList:
+      counter=0
+      for move in Move:
+        newPos=[food[0]+move[0],food[1]+move[1]]
+        if gameState.hasWall(newPos[0],newPos[1]):
+          counter+=1
+      if counter>=3:
+        self.dangerousFood.append(food)
+
+  def FoodEated(self,pos):
+    self.FoodList.remove(pos)
+    #self.dangerousFood.remove(pos)
+    #do we also need to update AgentFoodList?
+
+  def divideFood(self,gameState):
+    #working on it
+    pos1=[0,1]
+    pos2=[3,3]
+
+    minispan(gameState,pos1,pos2)
+
+def minispan(gameState,pos1,pos2):
+  #working on it
+  Move=[(0,1),(0,-1),(1,0),(-1,0)]
+  path=[]
+
+  return path
 
 foodPlan=FoodPlan()
 
@@ -92,7 +124,8 @@ class ReflexCaptureAgent(CaptureAgent):
     global foodPlan
 
     self.foodplan=foodPlan
-    self.foodplan.generateFoodList(gameState,self.index)
+    if self.index<2: # only the first anget need to init it
+      self.foodplan.generateFoodList(gameState,self.index)
 
     self.enemies=self.getOpponents(gameState)
 
@@ -148,7 +181,19 @@ class ReflexCaptureAgent(CaptureAgent):
     maxValue = max(values)
     bestActions = [a for a, v in zip(actions, values) if v == maxValue]
     ##print 'eval time for agent %d: %.4f' % (self.index, time.time() - start)
-    return random.choice(bestActions)
+
+    ChosenAction=random.choice(bestActions)
+
+    newState=gameState.generateSuccessor(self.index,ChosenAction)
+    oldScore=gameState.getScore()
+    newScore=newState.getScore()
+    if newScore>oldScore:
+      pos=newState.getAgentPosition(self.index)
+      #eat a food
+      self.foodplan.FoodEated(pos)
+
+
+    return ChosenAction
 
   def getSuccessor(self, gameState, action):
     """
@@ -182,9 +227,12 @@ class ReflexCaptureAgent(CaptureAgent):
       if pos != None:
         enemyPos.append((enemyI, pos))
 
-    if self.foodplan.flag:
-      self.foodplan.flag=False
-      self.debugDraw(self.foodplan.FoodList,[0.7,0.8,0])
+
+    #for test display
+    self.debugClear()
+    self.debugDraw(self.foodplan.FoodList,[0.7,0.8,0])
+    #self.debugDraw(self.foodplan.dangerousFood,[0.8,0,0])
+    #for test display
 
     if len(enemyPos) > 0:
       for enemyI, pos in enemyPos:
