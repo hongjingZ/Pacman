@@ -13,116 +13,31 @@ import random, time, util
 from game import Directions
 import game
 from util import nearestPoint
-##from inference import InferenceModule
 import sys
 
-
-# inference.py
-
-import util
-import random
-import game
-import sys
-import capture
-
-class InferenceModule:
+class FoodPlan:
   def __init__(self):
-    numParticles=9000
-    self.setNumParticles(numParticles)
-    self.Captured=False
-    self.moveList=[(0,1),(0,-1),(1,0),(-1,0)]
-    self.enemies=[]
+    self.AgentFoodList=[util.Counter(),util.Counter()]
+    self.FoodList=[]
+    self.flag=True
 
-  def setNumParticles(self, numParticles):
-    self.numParticles = numParticles
-
-  def initialize(self, gameState,startPos):
-    "Initializes beliefs to a uniform distribution over all positions."
-    self.startPos=startPos;
-    self.legalPositions = [p for p in gameState.getWalls().asList(False) if p[1] > 1]
-    self.initializeBorn(gameState,3)
-
-  def initializeBorn(self,gameState,index):
-    if index>=2:
-      self.Particles=[]
-      for i in range(self.numParticles):
-          pos1=self.startPos[0]
-          pos2=self.startPos[1]
-          self.Particles.append((pos1,pos2))
+  def generateFoodList(self, gameState, agentID):
+    bias=0
+    if gameState.isOnRedTeam(agentID):
+      bias=1
+      Foodmap=gameState.getRedFood();
     else:
-      if index==0:
-        i=0;
-      else:
-        i=1;
+      Foodmap=gameState.getBlueFood();
 
-  def initializeUniformly(self, gameState):
-    "Initializes a list of particles. Use self.numParticles for the number of particles"
-    print "initialzed particles"
-    self.Particles=[]
-    for i in range(self.numParticles):
-        pos1=random.choice(self.legalPositions)
-        pos2=random.choice(self.legalPositions)
-        self.Particles.append((pos1,pos2))
+    height=Foodmap.height
+    width=Foodmap.width
 
-  def observe(self, noisyDistance, gameState,agentID):
-    """
-    Update beliefs based on the given distance observation.
-    What if a ghost was eaten by agent?
-    The former assumption will be reinitialized, which is apparently unnecssary.
-    We need to find the method which can determine whether a certain agent is eaten, then like "go to jail", we just put them in the inital pos.gameState.getInitialAgentPosition(agentID)
-    """
-    AgentPosition = gameState.getAgentPosition(agentID)
-    weights=[1 for i in range(self.numParticles)]
-    for index in range(self.numParticles):
-        for i in range(2):
-            trueDistance=util.manhattanDistance(self.Particles[index][i],AgentPosition)
-            weights[index]*=gameState.getDistanceProb(trueDistance,noisyDistance[self.enemies[i]])
+    for y in range(height):
+      for x in range(width):
+        if Foodmap[x][y]:
+          self.FoodList.append((x+width*bias,y))
 
-    if sum(weights)==0:
-        self.initializeUniformly(gameState)
-        return
-    else:
-        newParticals=util.nSample(weights,self.Particles,self.numParticles)
-        self.Particles=newParticals
-
-  def elapseTime(self, gameState,agentID):
-    """
-    Update beliefs for a time step elapsing.
-    """
-    enemyID=((agentID+3)%4)/2 #(agentID+4-1)%4/2 calculating which agent just moved
-    #print "agentID="+str(agentID)+"enemyID="+str(enemyID)
-    newParticles = []
-    for oldParticle in self.Particles:
-        newParticle = list(oldParticle) # A list of ghost positions
-        pos=newParticle[enemyID] # certain enemy's position
-        newPosDistribution=util.Counter()
-        for move in self.moveList: # get every move
-            newPos=(pos[0]+move[0],pos[1]+move[1]) # get the new position
-            if newPos in self.legalPositions: # if the posistion is illeagle, ingore it.
-                newPosDistribution[newPos]=1
-        newPosDistribution.normalize()
-        newParticle[enemyID]=(util.sample(newPosDistribution))
-        newParticles.append(tuple(newParticle))
-
-    self.particles = newParticles
-
-  def getBeliefDistribution(self):
-    """
-    Return the agent's current belief state, a distribution over
-    ghost locations conditioned on all evidence and time passage.
-    belief has two couter, store the enemies' position repectively
-    """
-    belief=[util.Counter(),util.Counter()]
-    for p in self.Particles:
-            belief[0][p[0]]+=1
-            belief[1][p[1]]+=1
-
-    belief[0].divideAll(self.numParticles*1.0) #this 1.0 may be unnecessarily
-    belief[1].divideAll(self.numParticles*1.0)
-
-    return belief
-
-TeamInference=InferenceModule()
+foodPlan=FoodPlan()
 
 #################
 # Team creation #
@@ -130,26 +45,11 @@ TeamInference=InferenceModule()
 
 def createTeam(firstIndex, secondIndex, isRed,
                first = 'ReflexCaptureAgent', second = 'DefensiveReflexAgent'):
-  """
-  This function should return a list of two agents that will form the
-  team, initialized using firstIndex and secondIndex as their agent
-  index numbers.  isRed is True if the red team is being created, and
-  will be False if the blue team is being created.
-
-  As a potentially helpful development aid, this function can take
-  additional string-valued keyword arguments ("first" and "second" are
-  such arguments in the case of this function), which will come from
-  the --redOpts and --blueOpts command-line arguments to capture.py.
-  For the nightly contest, however, your team will be created without
-  any extra arguments, so you should make sure that the default
-  behavior is what you want for the nightly contest.
-  """
   return [eval(first)(firstIndex), eval(first)(secondIndex)]
 
 ##########
 # Agents #
 ##########
-
 
 class ReflexCaptureAgent(CaptureAgent):
   """
@@ -175,8 +75,6 @@ class ReflexCaptureAgent(CaptureAgent):
     CaptureAgent.registerInitialState in captureAgents.py.
     '''
 
-    global TeamInference
-
     CaptureAgent.registerInitialState(self, gameState)
     self.team = {}
     A = self.getTeam(gameState)
@@ -191,16 +89,12 @@ class ReflexCaptureAgent(CaptureAgent):
     '''
     Your initialization code goes here, if you need any.
     '''
+    global foodPlan
+
+    self.foodplan=foodPlan
+    self.foodplan.generateFoodList(gameState,self.index)
 
     self.enemies=self.getOpponents(gameState)
-
-    self.inference=TeamInference;
-    if self.index==A[0]: #only the first agent need to initialize the agent
-      startPos=[]
-      for i in range(2):
-        startPos.append(gameState.getAgentState(self.enemies[i]).start.pos)
-      self.inference.initialize(gameState,startPos);
-      self.inference.enemies=self.enemies
 
     #One agent goes up and one agent goes down
     pos = []
@@ -247,11 +141,6 @@ class ReflexCaptureAgent(CaptureAgent):
     """
     ##start = time.time()
 
-    #inference part
-    self.inference.elapseTime(gameState,self.index)
-    self.inference.observe(gameState.getAgentDistances(),gameState,self.index)
-    #end inference part
-
     actions = gameState.getLegalActions(self.index)
     ##actions.remove(Directions.STOP)
     # You can profile your evaluation time by uncommenting these lines
@@ -293,18 +182,9 @@ class ReflexCaptureAgent(CaptureAgent):
       if pos != None:
         enemyPos.append((enemyI, pos))
 
-    #display inferernce
-    belief=self.inference.getBeliefDistribution()
-    print belief
-    self.debugClear()
-    for index in range(2):
-        print "index="+str(index)
-        for pos in belief[index]:
-          print str(pos)+"="+str(belief[index][pos])
-          self.debugDraw(pos,[0,belief[index][pos],0],False)
-    #end display inference
-    self.debugDraw([(30,11)],[1,1,0])
-    self.debugDraw([(30,10)],[1,1,0])
+    if self.foodplan.flag:
+      self.foodplan.flag=False
+      self.debugDraw(self.foodplan.FoodList,[0.7,0.8,0])
 
     if len(enemyPos) > 0:
       for enemyI, pos in enemyPos:

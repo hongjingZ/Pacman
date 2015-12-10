@@ -13,8 +13,8 @@ DirectionsqÉUConfigurationqÑeUkeyboardAgents]qÖ(UKeyboardAgent2qÜUKeyboardAg
 FOOD_COLORqñUDEFAULT_GRID_SIZEqóUFRAME_NUMBERqòU
 GHOST_SIZEqôUPACMAN_OUTLINE_WIDTHqöUGHOST_COLORSqõUINFO_PANE_COLORqúUaddqùUPACMAN_CAPTURE_OUTLINE_WIDTHqûUPACMAN_SCALEqüU	FOOD_SIZEq†U
 WALL_COLORq°UCAPSULE_COLORq¢UPOSTSCRIPT_OUTPUT_DIRq£U
-LASER_SIZEq§UINFO_PANE_HEIGHTq•UFirstPersonPacmanGraphicsq¶UGHOST_SHAPEqßUTEAM_COLORSq®UPACMAN_COLORq©ULASER_COLORq™U	saveFrameq´UGHOST_VEC_COLORSq¨USAVE_POSTSCRIPTq≠UBACKGROUND_COLORqÆUWALL_RADIUSqØeUcaptureGraphicsDisplay]q∞(híhìhhîhïhñhóhòhôhöhõhúhùhûhüh†h°h¢h£h§h•h¶hßh®h©h™h´h¨h≠hÆhØeUSoStupid]q±(UTeamInferenceq≤hAh9heUpacman]q≥(UClassicGameRulesq¥hhUTIME_PENALTYqµhhU
-GhostRulesq∂Uargsq∑UPacmanRulesq∏h$h%h'h&U	loadAgentqπeUdistanceCalculator]q∫(U	DistancerqªUcomputeDistancesqºUisIntqΩUdistanceMapqæU
-getGrids2DqøUDistanceCalculatorq¿U
-getGrids1Dq¡hyUgetDistanceOnGridq¬eUghostAgents]q√(UDirectionalGhostqƒU
-GhostAgentq≈URandomGhostq∆eUbbbTeam]q«(hAh9heu.
+LASER_SIZEq§UINFO_PANE_HEIGHTq•UFirstPersonPacmanGraphicsq¶UGHOST_SHAPEqßUTEAM_COLORSq®UPACMAN_COLORq©ULASER_COLORq™U	saveFrameq´UGHOST_VEC_COLORSq¨USAVE_POSTSCRIPTq≠UBACKGROUND_COLORqÆUWALL_RADIUSqØeUcaptureGraphicsDisplay]q∞(híhìhhîhïhñhóhòhôhöhõhúhùhûhüh†h°h¢h£h§h•h¶hßh®h©h™h´h¨h≠hÆhØeUSoStupid]q±(UFoodPlanq≤hAh9UfoodPlanq≥eUpacman]q¥(UClassicGameRulesqµhhUTIME_PENALTYq∂hhU
+GhostRulesq∑Uargsq∏UPacmanRulesqπh$h%h'h&U	loadAgentq∫eUdistanceCalculator]qª(U	DistancerqºUcomputeDistancesqΩUisIntqæUdistanceMapqøU
+getGrids2Dq¿UDistanceCalculatorq¡U
+getGrids1Dq¬hyUgetDistanceOnGridq√eUghostAgents]qƒ(UDirectionalGhostq≈U
+GhostAgentq∆URandomGhostq«eUbbbTeam]q»(hAh9heu.
