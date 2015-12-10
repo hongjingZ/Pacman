@@ -1,4 +1,4 @@
 *.pyc
 *.replay
 *.swp
-./repoproject/*
+./.ropeproject/*
