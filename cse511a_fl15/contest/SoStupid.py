@@ -20,9 +20,16 @@ class FoodPlan:
     self.AgentFoodList=[util.Counter(),util.Counter()]
     self.FoodList=[]
     self.Walls=set()
+    self.dangerousPlace=set()
+
+    self.dangerousFood=set()
+    self.corridorFood=set()
+    self.openFood=set()
+    self.deadEndhead=set()
 
   def generateFoodList(self, gameState, agentID):
 
+    Move=[(0,1),(0,-1),(1,0),(-1,0)]
     bias=0
     MWalls=gameState.getWalls()
     if gameState.isOnRedTeam(agentID):
@@ -33,21 +40,33 @@ class FoodPlan:
     height=Foodmap.height
     width=Foodmap.width
 
+    if agentID==0:
+      xrange=range(width/2,width)
+    else:
+      xrange=range(0,width/2)
+
     for y in range(height):
-      for x in range(width):
+      for x in xrange:
         if Foodmap[x][y]:
           self.FoodList.append((x,y))
         if MWalls[x][y]:
           self.Walls.add((x,y))
 
+    #find every deadend
+    for y in range(height):
+      for x in xrange:
+        if not MWalls[x][y]:
+          counter=0
+          for move in Move:
+            if MWalls[x+move[0]][y+move[1]]:
+              counter+=1
+          if counter>2:
+            self.dangerousPlace.add((x,y))
+
     self.FoodFeature(gameState)
 
   def FoodFeature(self,gameState):
     Move=[(0,1),(0,-1),(1,0),(-1,0)]
-    self.dangerousFood=set()
-    self.corridorFood=set()
-    self.openFood=set()
-    self.deadEndhead=set()
 
     for food in self.FoodList:
       counter=0
@@ -62,47 +81,60 @@ class FoodPlan:
       else: #counter<=1
         self.openFood.add(food)
 
-    self.deadEndhead=self.dangerousFood.copy()
+    #self.deadEndhead=self.dangerousFood.copy()
+    self.deadEndhead=self.dangerousPlace.copy()
 
-    #shrink to corridorFood
+    #shrink to every pile of food
     breakFlag=False
     while not breakFlag: # if there exists a deadend food needed to be adjusted
-      breakFlag=True # assume there is no deadend needed to be shrink
-      tempFood=self.deadEndhead.copy()
-      for food in tempFood:
-        for move in Move:
-          newPos=(food[0]+move[0],food[1]+move[1])
-          # because it must be one of corridorFood, it cannot be a wall
-          if (newPos in self.corridorFood) and (newPos not in self.dangerousFood):
-            breakFlag=False
-            self.dangerousFood.add(newPos)
-            self.deadEndhead.remove(food)
-            if newPos==(24,11):
-              print "here"+str(food)
-            food=newPos
-            newPos=(food[0]+move[0],food[1]+move[1])
-            while newPos in self.corridorFood: #find the head of this corridor
-              food=newPos
-              newPos=(food[0]+move[0],food[1]+move[1]) #there is only one way to the head
-              self.dangerousFood.add(food)
-            self.deadEndhead.add(food)
 
-        tempFood=self.openFood-self.dangerousFood
-        for food in tempFood:
-          deadEndheads=[]
+      breakFlag=True # assume there is no deadend needed to be shrink
+      tempDeadEnds=self.deadEndhead.copy()
+
+      for deadend in tempDeadEnds:
+        counter=0
+        self.deadEndhead.remove(deadend) # assume this is not the real start of the dead end
+        #find the only exit for this dead end
+        for move in Move:
+          newPos=(deadend[0]+move[0],deadend[1]+move[1])
+          if (newPos not in self.Walls) and newPos not in self.dangerousPlace:
+            testPos=newPos #This is the only exit for the deadend
+          else:
+            counter+=1
+
+        if counter>3:
+          #this is a really DEAD END
+          continue
+
+        #check whether this exit is an open area
+        counter=0
+        for move in Move:
+          newPos=(testPos[0]+move[0],testPos[1]+move[1])
+          if (newPos not in self.Walls) and (newPos not in self.dangerousPlace):
+            nextPos=newPos
+          else:
+            counter+=1
+            # if the newPos is dangerous place, nextPos will be the exit for it
+
+        #if this is not an open area, we keep looking
+        while counter>2: #exit is not a safe place, it must be a corridor
+          #deadend need to grow
+          self.dangerousPlace.add(testPos) # because it's not an open area, it's dangerous
+          deadend=testPos #In order to rember the end of this tunnel
+          testPos=nextPos #The exit for the new deadend
+          breakFlag=False #fail on this time for the bigger while
+
+          #start a new test
           counter=0
           for move in Move:
-            newPos=(food[0]+move[0],food[1]+move[1])
-            if gameState.hasWall(newPos[0],newPos[1]):
+            newPos=(testPos[0]+move[0],testPos[1]+move[1])
+            if (newPos not in self.Walls) and (newPos not in self.dangerousPlace):
+              nextPos=newPos
+            else:
               counter+=1
-            if newPos in self.deadEndhead:
-              counter+=1
-              deadEndheads.append(newPos)
 
-          if counter>2: #this is also a deadendhead
-            for deadendhead in deadEndhead:
-              self.deadEndhead.remove(deadendhead)
-            self.deadEndhead.add(newPos) # replace this old head with this one
+        #deadend now is the end of the tunnel
+        self.deadEndhead.add(deadend)
 
   def FoodEated(self,pos):
     self.FoodList.remove(pos)
@@ -290,7 +322,8 @@ class ReflexCaptureAgent(CaptureAgent):
     #self.debugDraw(self.foodplan.FoodList,[0.7,0.8,0])
     #self.debugDraw(self.Astart_point,[1,0.5,0.5])
     #self.debugDraw(self.Bstart_point,[1,0.5,0.5])
-    self.debugDraw(list(self.foodplan.dangerousFood),[1,0,0])
+    #self.debugDraw(list(self.foodplan.dangerousFood),[1,0,0])
+    self.debugDraw(list(self.foodplan.dangerousPlace),[1,0,0])
     #self.debugDraw(list(self.foodplan.openFood),[1,0.8,0])
     self.debugDraw(list(self.foodplan.deadEndhead),[0.5,0,0.5])
     #self.debugDraw((24,10),[1,0,1])
