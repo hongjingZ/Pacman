@@ -1,0 +1,242 @@
+# search.py
+# ---------
+# Licensing Information: Please do not distribute or publish solutions to this
+# project. You are free to use and extend these projects for educational
+# purposes. The Pacman AI projects were developed at UC Berkeley, primarily by
+# John DeNero (denero@cs.berkeley.edu) and Dan Klein (klein@cs.berkeley.edu).
+# For more info, see http://inst.eecs.berkeley.edu/~cs188/sp09/pacman.html
+
+"""
+In search.py, you will implement generic search algorithms which are called
+by Pacman agents (in searchAgents.py).
+"""
+
+import util
+
+class SearchProblem:
+    """
+    This class outlines the structure of a search problem, but doesn't implement
+    any of the methods (in object-oriented terminology: an abstract class).
+
+    You do not need to change anything in this class, ever.
+    """
+
+    def getStartState(self):
+        """
+        Returns the start state for the search problem
+        """
+        util.raiseNotDefined()
+
+    def isGoalState(self, state):
+        """
+          state: Search state
+
+        Returns True if and only if the state is a valid goal state
+        """
+        util.raiseNotDefined()
+
+    def getSuccessors(self, state):
+        """
+          state: Search state
+
+        For a given state, this should return a list of triples,
+        (successor, action, stepCost), where 'successor' is a
+        successor to the current state, 'action' is the action
+        required to get there, and 'stepCost' is the incremental
+        cost of expanding to that successor
+        """
+        util.raiseNotDefined()
+
+    def getCostOfActions(self, actions):
+        """
+         actions: A list of actions to take
+
+        This method returns the total cost of a particular sequence of actions.  The sequence must
+        be composed of legal moves
+        """
+        util.raiseNotDefined()
+
+
+def tinyMazeSearch(problem):
+    """
+    Returns a sequence of moves that solves tinyMaze.  For any other
+    maze, the sequence of moves will be incorrect, so only use this for tinyMaze
+    """
+    from game import Directions
+    s = Directions.SOUTH
+    w = Directions.WEST
+    return  [s,s,w,s,w,w,s,w]
+
+def depthFirstSearch(problem):
+    """
+    Search the deepest nodes in the search tree first
+    [2nd Edition: p 75, 3rd Edition: p 87]
+
+    Your search algorithm needs to return a list of actions that reaches
+    the goal.  Make sure to implement a graph search algorithm
+    [2nd Edition: Fig. 3.18, 3rd Edition: Fig 3.7].
+
+    To get started, you might want to try some of these simple commands to
+    understand the search problem that is being passed in:
+
+    print "Start:", problem.getStartState()
+    print "Is the start a goal?", problem.isGoalState(problem.getStartState())
+    print "Start's successors:", problem.getSuccessors(problem.getStartState())
+    """
+    "*** YOUR CODE HERE ***"
+    stack=util.Stack()
+    fathers={}
+    state=problem.getStartState()
+    actions=[]
+    visited=[state]
+    while problem.isGoalState(state)==0:
+        succs=problem.getSuccessors(state)
+        i=0
+        for item in succs:
+            if item[0] not in visited:
+                stack.push(item)
+                fathers.update({item[0]:state})
+                i=1
+        if i==1:
+            father=state
+        else:
+            while 1:
+                test=stack.pop()
+                if test[0] not in visited:
+                    break
+            testFather=fathers[test[0]]
+            while state!=testFather:   #trace back
+                actions.pop()          #trace back
+                state=fathers[state]
+            state=test[0]
+            actions.append(test[1])
+            visited.append(state)
+            continue
+
+        next=stack.pop()
+        state=next[0]
+        actions.append(next[1])
+        visited.append(state)
+        fathers.update({state:father})
+
+    return actions
+
+def breadthFirstSearch(problem):
+    """
+    Search the shallowest nodes in the search tree first.
+    [2nd Edition: p 73, 3rd Edition: p 82]
+    """
+    "*** YOUR CODE HERE ***"
+    q1 = util.Queue()
+    state = problem.getStartState()
+    fathers = {}
+    action = []
+    visited = [state]
+    while problem.isGoalState(state) == 0:
+        succs = problem.getSuccessors(state)
+        for item in succs:
+            if item[0] not in visited:
+                flag = 0
+                for l in q1.list:
+                    if l[0] == item[0]:
+                        flag = 1
+                if flag == 0:
+                    q1.push(item)
+                    father = state
+                    fathers.update({item[0]:[father,item[1]]})
+        while 1:
+            node = q1.pop()
+            if node[0] not in visited:
+                break
+        state = node[0]
+        visited.append(state)
+    while state != problem.getStartState():
+        action.append((fathers[state])[1])   #direction from parent to son
+        state = (fathers[state])[0]
+    action.reverse()
+    return action
+
+def uniformCostSearch(problem):
+    "Search the node of least total cost first. "
+    "*** YOUR CODE HERE ***"
+    q1 = util.PriorityQueue()
+    state = problem.getStartState()
+    fathers = {state:[]}
+    cost = {state:0}
+    #fathers.update({state:[state,'stop',0]})
+    action = []
+    visited = [state]
+    while problem.isGoalState(state) == 0:
+        succs = problem.getSuccessors(state)
+        for item in succs:
+            if item[0] not in visited:
+                flag = 0
+                for l in q1.heap:
+                    if l[2][0] == item[0]:
+                        flag = 1
+                        i_cost = item[2]+cost[fathers[item[0]][0]]
+                        previous_cost = cost[l[2][0]]
+                        if i_cost < previous_cost:
+                            flag = 0
+                if flag == 0:
+                    father = state
+                    fathers.update({item[0]:[father,item[1],item[2]]})
+                    i_cost = item[2]+cost[fathers[item[0]][0]]
+                    cost.update({item[0]:i_cost})
+                    q1.push(item,i_cost)
+        while 1:
+            node = q1.pop()
+            if node[0] not in visited:
+                break
+        state = node[0]
+        visited.append(state)
+    while state != problem.getStartState():
+        action.append((fathers[state])[1])   #direction from parent to son
+        state = (fathers[state])[0]
+    action.reverse()
+    return action
+
+def nullHeuristic(state, problem=None):
+    """
+    A heuristic function estimates the cost from the current state to the nearest
+    goal in the provided SearchProblem.  This heuristic is trivial.
+    """
+    return 0
+
+def aStarSearch(problem, heuristic=nullHeuristic):
+    "Search the node that has the lowest combined cost and heuristic first."
+    "*** YOUR CODE HERE ***"
+    queue=util.PriorityQueue()
+    state=problem.getStartState()
+    paths={state:[]}
+    visited=[state]
+    costs={state:0}
+    optCost=9999999
+    while problem.isGoalState(state)==False or queue.isEmpty==False:
+        if problem.isGoalState(state)==True:
+            if costs[state]<optCost:
+                optCost=costs[state]
+                continue
+        succs=problem.getSuccessors(state)
+        for item in succs:
+            if item[0] not in visited:
+                some=[item,state]  #remember parent
+                queue.push(some, item[2]+costs[state]+heuristic(item[0],problem))
+        while 1:
+            test=queue.pop()
+            if test[0][0] not in visited:
+                break
+        state=test[0][0]
+        testFather=test[1]
+        currPath=paths[testFather]+[test[0][1]]
+        paths.update({state:currPath})
+        costs.update({state:test[0][2]+costs[testFather]})
+        visited.append(state)
+
+    return paths[state]
+
+# Abbreviations
+bfs = breadthFirstSearch
+dfs = depthFirstSearch
+astar = aStarSearch
+ucs = uniformCostSearch
