@@ -19,9 +19,19 @@ class FoodPlan:
   def __init__(self):
     self.AgentFoodList=[util.Counter(),util.Counter()]
     self.FoodList=[]
+    self.Walls=set()
+    self.dangerousPlace=set()
+
+    self.dangerousFood=set()
+    self.corridorFood=set()
+    self.openFood=set()
+    self.deadEndhead=set()
 
   def generateFoodList(self, gameState, agentID):
+
+    Move=[(0,1),(0,-1),(1,0),(-1,0)]
     bias=0
+    MWalls=gameState.getWalls()
     if gameState.isOnRedTeam(agentID):
       Foodmap=gameState.getBlueFood();
     else:
@@ -30,16 +40,33 @@ class FoodPlan:
     height=Foodmap.height
     width=Foodmap.width
 
+    if agentID==0:
+      xrange=range(width/2,width)
+    else:
+      xrange=range(0,width/2)
+
     for y in range(height):
-      for x in range(width):
+      for x in xrange:
         if Foodmap[x][y]:
           self.FoodList.append((x,y))
+        if MWalls[x][y]:
+          self.Walls.add((x,y))
+
+    #find every deadend
+    for y in range(height):
+      for x in xrange:
+        if not MWalls[x][y]:
+          counter=0
+          for move in Move:
+            if MWalls[x+move[0]][y+move[1]]:
+              counter+=1
+          if counter>2:
+            self.dangerousPlace.add((x,y))
 
     self.FoodFeature(gameState)
 
   def FoodFeature(self,gameState):
     Move=[(0,1),(0,-1),(1,0),(-1,0)]
-    self.dangerousFood=[]
 
     for food in self.FoodList:
       counter=0
@@ -48,26 +75,85 @@ class FoodPlan:
         if gameState.hasWall(newPos[0],newPos[1]):
           counter+=1
       if counter>=3:
-        self.dangerousFood.append(food)
+        self.dangerousFood.add(food)
+      elif counter==2:
+        self.corridorFood.add(food)
+      else: #counter<=1
+        self.openFood.add(food)
+
+    #self.deadEndhead=self.dangerousFood.copy()
+    self.deadEndhead=self.dangerousPlace.copy()
+
+    #shrink to every pile of food
+    breakFlag=False
+    while not breakFlag: # if there exists a deadend food needed to be adjusted
+
+      breakFlag=True # assume there is no deadend needed to be shrink
+      tempDeadEnds=self.deadEndhead.copy()
+
+      for deadend in tempDeadEnds:
+        counter=0
+        self.deadEndhead.remove(deadend) # assume this is not the real start of the dead end
+        #find the only exit for this dead end
+        for move in Move:
+          newPos=(deadend[0]+move[0],deadend[1]+move[1])
+          if (newPos not in self.Walls) and newPos not in self.dangerousPlace:
+            testPos=newPos #This is the only exit for the deadend
+          else:
+            counter+=1
+
+        if counter>3:
+          #this is a really DEAD END
+          continue
+
+        #check whether this exit is an open area
+        counter=0
+        for move in Move:
+          newPos=(testPos[0]+move[0],testPos[1]+move[1])
+          if (newPos not in self.Walls) and (newPos not in self.dangerousPlace):
+            nextPos=newPos
+          else:
+            counter+=1
+            # if the newPos is dangerous place, nextPos will be the exit for it
+
+        #if this is not an open area, we keep looking
+        while counter>2: #exit is not a safe place, it must be a corridor
+          #deadend need to grow
+          self.dangerousPlace.add(testPos) # because it's not an open area, it's dangerous
+          deadend=testPos #In order to rember the end of this tunnel
+          testPos=nextPos #The exit for the new deadend
+          breakFlag=False #fail on this time for the bigger while
+
+          #start a new test
+          counter=0
+          for move in Move:
+            newPos=(testPos[0]+move[0],testPos[1]+move[1])
+            if (newPos not in self.Walls) and (newPos not in self.dangerousPlace):
+              nextPos=newPos
+            else:
+              counter+=1
+
+        #deadend now is the end of the tunnel
+        self.deadEndhead.add(deadend)
 
   def FoodEated(self,pos):
     self.FoodList.remove(pos)
     #self.dangerousFood.remove(pos)
     #do we also need to update AgentFoodList?
 
-  def divideFood(self,gameState):
+  def divideFood(self,gameState,pos1,pos2):
     #working on it
-    pos1=[0,1]
-    pos2=[3,3]
+    self.minispan(pos1,pos2)
 
-    minispan(gameState,pos1,pos2)
+  def minispan(self,pos1,pos2):
+    #working on it
+    Move=[(0,1),(0,-1),(1,0),(-1,0)]
+    pos=pos1
+    #while pos!=pos2:
+    #  for
+    path=[]
 
-def minispan(gameState,pos1,pos2):
-  #working on it
-  Move=[(0,1),(0,-1),(1,0),(-1,0)]
-  path=[]
-
-  return path
+    return path
 
 foodPlan=FoodPlan()
 
@@ -121,12 +207,6 @@ class ReflexCaptureAgent(CaptureAgent):
     '''
     Your initialization code goes here, if you need any.
     '''
-    global foodPlan
-
-    self.foodplan=foodPlan
-    if self.index<2: # only the first anget need to init it
-      self.foodplan.generateFoodList(gameState,self.index)
-
     self.enemies=self.getOpponents(gameState)
 
     #One agent goes up and one agent goes down
@@ -136,6 +216,7 @@ class ReflexCaptureAgent(CaptureAgent):
     if self.red:
       x = x - 1
     self.start_point = (x, y)
+
     for i in xrange(y):
       if gameState.hasWall(x, y) == False:
         pos.append((x, y))
@@ -167,6 +248,14 @@ class ReflexCaptureAgent(CaptureAgent):
         minPos = location
     self.Astart_point = minPos
     ##print "self.Astart_point:",self.Astart_point
+
+    global foodPlan
+
+    self.foodplan=foodPlan
+    if self.index<2: # only the first anget need to init it
+      self.foodplan.generateFoodList(gameState,self.index)
+      self.foodplan.divideFood(gameState,self.Astart_point,self.Bstart_point)
+
 
   def chooseAction(self, gameState):
     """
@@ -230,8 +319,14 @@ class ReflexCaptureAgent(CaptureAgent):
 
     #for test display
     self.debugClear()
-    self.debugDraw(self.foodplan.FoodList,[0.7,0.8,0])
-    #self.debugDraw(self.foodplan.dangerousFood,[0.8,0,0])
+    #self.debugDraw(self.foodplan.FoodList,[0.7,0.8,0])
+    #self.debugDraw(self.Astart_point,[1,0.5,0.5])
+    #self.debugDraw(self.Bstart_point,[1,0.5,0.5])
+    #self.debugDraw(list(self.foodplan.dangerousFood),[1,0,0])
+    self.debugDraw(list(self.foodplan.dangerousPlace),[1,0,0])
+    #self.debugDraw(list(self.foodplan.openFood),[1,0.8,0])
+    self.debugDraw(list(self.foodplan.deadEndhead),[0.5,0,0.5])
+    #self.debugDraw((24,10),[1,0,1])
     #for test display
 
     if len(enemyPos) > 0:
