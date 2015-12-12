@@ -380,10 +380,17 @@ class ReflexCaptureAgent(CaptureAgent):
     #self.debugDraw(self.foodplan.FoodList,[0.7,0.8,0])
     #self.debugDraw(self.Astart_point,[1,0.5,0.5])
     #self.debugDraw(self.Bstart_point,[1,0.5,0.5])
+<<<<<<< HEAD
+    #self.debugDraw(list(self.foodplan.dangerousFood),[1,0,0])
     ##self.debugDraw(list(self.foodplan.dangerousPlace),[1,0,0])
     #self.debugDraw(list(self.foodplan.openFood),[1,0.8,0])
     #self.debugDraw(list(self.foodplan.deadEndhead),[0.5,0,0.5])
+=======
+    self.debugDraw(list(self.foodplan.dangerousPlace),[1,0,0])
+    #self.debugDraw(list(self.foodplan.openFood),[1,0.8,0])
+    #self.debugDraw(list(self.foodplan.deadEndhead),[0.5,0,0.5])
     self.debugDraw(list(self.foodplan.foodHeap),[0,0.9,0.5])
+>>>>>>> 9c8c89564f7bcd0906e3224ef6c8c6988717c457
     #self.debugDraw((24,10),[1,0,1])
     #for test display
 

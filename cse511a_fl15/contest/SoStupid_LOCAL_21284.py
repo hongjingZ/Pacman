@@ -18,17 +18,15 @@ import sys
 
 class FoodPlan:
   def __init__(self):
-    #self.AgentFoodList=[util.Counter(),util.Counter()]
-    self.AgentFoodList=[set(),set()]
+    self.AgentFoodList=[util.Counter(),util.Counter()]
     self.FoodList=[]
-    self.Foodset=set()
     self.Walls=set()
-
     self.dangerousPlace=set()
-    self.deadEndhead=set()
-    self.foodHeap=set()
 
-    self.foodMap=util.Counter()
+    self.dangerousFood=set()
+    self.corridorFood=set()
+    self.openFood=set()
+    self.deadEndhead=set()
 
   def generateFoodList(self, gameState, agentID):
 
@@ -52,7 +50,6 @@ class FoodPlan:
       for x in xrange:
         if Foodmap[x][y]:
           self.FoodList.append((x,y))
-          self.Foodset.add((x,y))
         if MWalls[x][y]:
           self.Walls.add((x,y))
 
@@ -71,6 +68,19 @@ class FoodPlan:
 
   def FoodFeature(self,gameState):
     Move=[(0,1),(0,-1),(1,0),(-1,0)]
+
+    for food in self.FoodList:
+      counter=0
+      for move in Move:
+        newPos=[food[0]+move[0],food[1]+move[1]]
+        if gameState.hasWall(newPos[0],newPos[1]):
+          counter+=1
+      if counter>=3:
+        self.dangerousFood.add(food)
+      elif counter==2:
+        self.corridorFood.add(food)
+      else: #counter<=1
+        self.openFood.add(food)
 
     #self.deadEndhead=self.dangerousFood.copy()
     self.deadEndhead=self.dangerousPlace.copy()
@@ -126,44 +136,6 @@ class FoodPlan:
 
         #deadend now is the end of the tunnel
         self.deadEndhead.add(deadend)
-        self.foodHeap.add(testPos)
-
-    tempFood=self.foodHeap.copy()
-    for food in tempFood:
-      if food in self.dangerousPlace:
-        self.foodHeap.remove(food)
-
-    for food in self.FoodList:
-      if food not in self.dangerousPlace:
-        self.foodHeap.add(food)
-        self.foodMap[food]=food
-
-    for heap in self.foodHeap:
-      visited=set()
-      queue=util.Queue()
-      queue.push(heap)
-      while not queue.isEmpty():
-        pos=queue.pop()
-        if (pos not in visited) and (pos in self.dangerousPlace) or (pos==heap):
-          visited.add(pos)
-          if pos in self.Foodset:
-            self.foodMap[pos]=heap
-          newPoses=self.successors(pos,False)
-          for newPos in newPoses:
-            queue.push(newPos)
-
-
-    #for debug
-    tempMap=util.Counter()
-    for key in self.FoodList:
-      if tempMap[self.foodMap[key]]==0:
-        tempMap[self.foodMap[key]]=[key]
-      else:
-        tempMap[self.foodMap[key]].append(key)
-
-    for key in tempMap:
-      print str(key)+":"+str(tempMap[key])
-    #end of debug
 
   def FoodEated(self,pos):
     if pos in self.FoodList:
@@ -171,47 +143,19 @@ class FoodPlan:
     #self.dangerousFood.remove(pos)
     #do we also need to update AgentFoodList?
 
-  def divideFood(self,pos1,pos2):
+  def divideFood(self,gameState,pos1,pos2):
     #working on it
-    return
-    print "dividing..."
-    #if there are only one entrance, I just wanna say fuck me...
-    queueA=util.Queue()
-    queueB=util.Queue()
-    visited=set()
+    self.minispan(pos1,pos2)
 
-    queueA.push(pos1)
-    queueB.push(pos2)
-
-    while not (queueA.isEmpty() and queueB.isEmpty()):
-      #until all of the queue is empty
-      self.expand(queueA,0,visited)
-      self.expand(queueB,1,visited)
-
-  def expand(Queue,Agent,visited):
-    pos=Queue.pop()
-    if pos not in visited:
-      visited.add(pos)
-      if pos in self.foodHeap:
-        self.AgentFoodList[Agent].add(pos)
-      newPoses=self.successors(pos)
-      for newPos in newPoses:
-        Queue.push(newPos)
-
-  def successors(self,start,safe=True):
-    #this method will not enter a dangerous place
+  def minispan(self,pos1,pos2):
+    #working on it
     Move=[(0,1),(0,-1),(1,0),(-1,0)]
+    pos=pos1
+    #while pos!=pos2:
+    #  for
+    path=[]
 
-    ends=[]
-    for move in Move:
-      end=(start[0]+move[0],start[1]+move[1])
-      if (end not in self.Walls) and ((end not in self.dangerousPlace)==safe):
-        ends.append(end)
-
-    return ends
-
-
-
+    return path
 
 foodPlan=FoodPlan()
 
@@ -311,7 +255,7 @@ class ReflexCaptureAgent(CaptureAgent):
     self.foodplan=foodPlan
     if self.index<2: # only the first anget need to init it
       self.foodplan.generateFoodList(gameState,self.index)
-      self.foodplan.divideFood(self.Astart_point,self.Bstart_point)
+      self.foodplan.divideFood(gameState,self.Astart_point,self.Bstart_point)
 
 
   def chooseAction(self, gameState):
@@ -380,10 +324,10 @@ class ReflexCaptureAgent(CaptureAgent):
     #self.debugDraw(self.foodplan.FoodList,[0.7,0.8,0])
     #self.debugDraw(self.Astart_point,[1,0.5,0.5])
     #self.debugDraw(self.Bstart_point,[1,0.5,0.5])
+    #self.debugDraw(list(self.foodplan.dangerousFood),[1,0,0])
     ##self.debugDraw(list(self.foodplan.dangerousPlace),[1,0,0])
     #self.debugDraw(list(self.foodplan.openFood),[1,0.8,0])
     #self.debugDraw(list(self.foodplan.deadEndhead),[0.5,0,0.5])
-    self.debugDraw(list(self.foodplan.foodHeap),[0,0.9,0.5])
     #self.debugDraw((24,10),[1,0,1])
     #for test display
 
