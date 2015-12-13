@@ -270,6 +270,7 @@ class ReflexCaptureAgent(CaptureAgent):
     values = [self.evaluate(gameState, a) for a in actions]
     maxValue = max(values)
     bestActions = [a for a, v in zip(actions, values) if v == maxValue]
+
     ##print 'eval time for agent %d: %.4f' % (self.index, time.time() - start)
 
     ChosenAction=random.choice(bestActions)
@@ -339,12 +340,15 @@ class ReflexCaptureAgent(CaptureAgent):
             ##print "self postion:",L.getPosition()
             if gameState.getAgentState((self.index+1)%4).scaredTimer <=0 and gameState.getAgentState((self.index+3)%4).scaredTimer <=0:
                 return self.getDefenseFeatures(gameState,action)
+    """
     if self.getMazeDistance(L.getPosition(), gameState.getInitialAgentPosition(self.index)) == 0:
        self.is_prepared = False
     if self.is_prepared == False:
         return self.getStartFeatures(gameState,action)
+
     else:
-        return self.getOffensiveFeatures(gameState,action)
+    """
+    return self.getOffensiveFeatures(gameState,action)
 
   def getWeights(self, gameState, action):
 
@@ -358,14 +362,15 @@ class ReflexCaptureAgent(CaptureAgent):
 
     if len(enemyPos) > 0:
       for enemyI, pos in enemyPos:
-        if self.getMazeDistance(L.getPosition(), pos) <= 2 and L.isPacman==False and gameState.getAgentState(self.index).scaredTimer<=0:
+        if self.getMazeDistance(L.getPosition(), pos) <= 4 and L.isPacman==False and gameState.getAgentState(self.index).scaredTimer<=0:
             if gameState.getAgentState((self.index+1)%4).scaredTimer <=0 and gameState.getAgentState((self.index+3)%4).scaredTimer <=0:
-                return self.getDefenseFeatures(gameState,action)
-
+                return self.getDefenseWeights(gameState,action)
+    """
     if self.is_prepared == False:
         return self.getStartWeights(gameState,action)
     else:
-        return self.getOffensiveWeights(gameState,action)
+    """
+    return self.getOffensiveWeights(gameState,action)
 
 
   def getStartFeatures(self, gameState, action):
@@ -528,19 +533,19 @@ class ReflexCaptureAgent(CaptureAgent):
     """
     ##self.debugClear()
     enemyPos = []
-
     for enemyI in self.getOpponents(successor):
       pos = successor.getAgentPosition(enemyI)
       #Will need inference if None
       if pos != None:
         enemyPos.append(pos)
     ##if len(enemyPos) > 0:
-        ##self.debugDraw(enemyPos,[1,0,0])
+    ##    self.debugDraw(enemyPos,[1,0,0])
     features['enemy_dis'] = 0
     features['danger_food'] = 0
+    features['dist_to_dead_end'] = 0
     myPos = successor.getAgentState(self.index).getPosition()
     for pos in enemyPos:
-        if self.getMazeDistance(myPos,pos) <= 2:
+        if self.getMazeDistance(myPos,pos) <= 4:
             if successor.getAgentPosition((self.index+1)%4) == pos:
                 enemyI = (self.index+1)%4
             else:
@@ -556,8 +561,18 @@ class ReflexCaptureAgent(CaptureAgent):
                     features['danger_food'] = 0
                     features['enemy_dis'] = 0
                 else:
-                    if self.target in self.foodplan.deadEndhead:
-                        features['distanceToFood'] = -1 * features['distanceToFood']
+                    if self.target in list(self.foodplan.dangerousPlace):
+                        features['distanceToFood'] = float(1)/float(features['distanceToFood'])
+
+                    features['dist_to_dead_end'] = 10
+                    for pos in list(self.foodplan.deadEndhead):
+                        if self.getMazeDistance(pos,myPos) <= features['dist_to_dead_end'] and myPos in list(self.foodplan.dangerousPlace):
+                            if self.getMazeDistance(pos,myPos) == 0:
+                                features['dist_to_dead_end'] = 10
+                            else:
+                                features['dist_to_dead_end'] = float(1)/float(self.getMazeDistance(pos,myPos))
+
+
     ##if features['enemy_dis'] == 1:
       ##print "indanger!!!!!","agentID",self.index,"place_score",features['place_score']
       ##features['place_score'] = features['place_score']*2
@@ -591,6 +606,7 @@ class ReflexCaptureAgent(CaptureAgent):
     weights['enemy_dis'] = -1000
     weights['danger_food'] = -1500
     weights['dead'] = -99999
+    weights['dist_to_dead_end'] = 20
     return weights
 
   def getDefenseFeatures(self, gameState, action):
@@ -607,7 +623,7 @@ class ReflexCaptureAgent(CaptureAgent):
     # Computes distance to invaders we can see
     enemies = [successor.getAgentState(i) for i in self.getOpponents(successor)]
     ##invaders = [a for a in enemies if a.isPacman and a.getPosition() != None]
-    invaders = [a for a in enemies if a.getPosition() != None]
+    invaders = [a for a in enemies if a.isPacman and  a.getPosition() != None]
     features['numInvaders'] = len(invaders)
     features['bonus'] = 0
     if len(invaders) > 0:
@@ -629,5 +645,5 @@ class ReflexCaptureAgent(CaptureAgent):
 
 
   def getDefenseWeights(self, gameState, action):
-    return {'numInvaders': -1000, 'onDefense': 100, 'invaderDistance': -100,'bonus':0, 'stop': 0, 'reverse': 0,'dead':-99999}
+    return {'numInvaders': -1000, 'onDefense': 100, 'invaderDistance': -10,'bonus':1000, 'stop': 0, 'reverse': 0,'dead':-99999}
 
